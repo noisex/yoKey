@@ -1,0 +1,14 @@
+## Interface: 80000
+## Version: 0.0.1
+## Title: yoKey
+## Author: NoiseX
+
+LibStub\LibStub.lua
+LibObjectiveProgress-1.0\embed.xml
+
+Func.lua
+yoKey.lua
+
+Affixes.lua
+AuraMarker.lua
+
