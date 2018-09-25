@@ -3,12 +3,12 @@ local affCount = 3
 local iSize = 35
 local requestKeystoneCheck, oldKey, currentWeek
 
-local scheduleTitle = "Расписание"
+local scheduleTitle = "Schedule"
 local scheduleWeeks = { "Эта неделя", "Следующая","Через одну", "Через две" }
 local scheduleMissingKeystone = "Требуется 7+ Ключ в сумке для получения текущих аффиксов"
 
-MYTHIC_PLUS_INCOMPLETE_WEEKLY_KEYSTONE = "Дуй в ключи и не ной!!!"
-MYTHIC_PLUS_MISSING_KEYSTONE_MESSAGE   = "Просто иди в ключи,\n там все поймешь..."
+MYTHIC_PLUS_INCOMPLETE_WEEKLY_KEYSTONE = "Dont cry, make key!!!"
+MYTHIC_PLUS_MISSING_KEYSTONE_MESSAGE   = "Take your freiends\n ang go in dunge..."
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
@@ -125,7 +125,7 @@ local function CreateLiders( self)
 			self.leaderBest.title = self.leaderBest:CreateFontString(nil, "ARTWORK")
 			self.leaderBest.title:SetFont( font, fontsize + 3, "OUTLINE")
 			self.leaderBest.title:SetTextColor( 1, 0.75, 0, 1)
-			self.leaderBest.title:SetText( "Доска почета")
+			self.leaderBest.title:SetText( "Weekly leaders")
 			self.leaderBest.title:SetPoint("BOTTOM", self.leaderBest, "TOP", -15, 10)
 		end
 
@@ -290,7 +290,7 @@ local function Blizzard_ChallengesUI( self)
 	local title2 = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title2:SetFont( font, fontsize + 3, "OUTLINE")
 	title2:SetTextColor(1, 0.75, 0, 1)
-	title2:SetText( "Награды")
+	title2:SetText( "Rewards")
 	title2:SetPoint("TOP", line3, "BOTTOM", 0, 0)
 
 	local line4 = frame:CreateTexture(nil, "ARTWORK")
@@ -298,7 +298,7 @@ local function Blizzard_ChallengesUI( self)
 	line4:SetAtlas("ChallengeMode-RankLineDivider", false)
 	line4:SetPoint("TOP", title2, "BOTTOM", 0, 0)
 
-	local outReward = "|cffffc300Level  Reward   Week Azer|r\n"
+	local outReward = "|cffffc300Level  Reward   Week/Azer|r\n"
 	for i, v in ipairs( mythicRewards ) do
 		outReward = outReward .. format("|cffff0000%5d|r|cff00ffff%10d%10d/|cffff9900%d\n", v[1], v[2], v[3], v[4])
 	end
