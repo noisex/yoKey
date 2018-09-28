@@ -412,16 +412,148 @@ local function OnEvent( self, event, name, ...)
 	--	end
 
 	elseif event == "CHALLENGE_MODE_START"  or event == "CHALLENGE_MODE_RESET" then
-		oldKey = CheckInventoryKeystone()
+		--oldKey = CheckInventoryKeystone()
 
 	elseif event == "CHALLENGE_MODE_COMPLETED" then
-		local newKey = CheckInventoryKeystone()
-		if newKey and newKey ~= oldKey then
+		--local newKey = CheckInventoryKeystone()
+		--if newKey and newKey ~= oldKey then
 			--print(newKey)
-			SendChatMessage( newKey, "PARTY")
+			--SendChatMessage( newKey, "PARTY")
+		--end
+	end
+end
+
+----------------------------------------------------------------------------------
+---			ObjectiveTracker ( Angry KeyStone)
+----------------------------------------------------------------------------------
+
+local TIME_FOR_3 = 0.6
+local TIME_FOR_2 = 0.8
+
+local function timeFormat(seconds)
+	local hours = floor(seconds / 3600)
+	local minutes = floor((seconds / 60) - (hours * 60))
+	seconds = seconds - hours * 3600 - minutes * 60
+
+	if hours == 0 then
+		return format("%d:%.2d", minutes, seconds)
+	else
+		return format("%d:%.2d:%.2d", hours, minutes, seconds)
+	end
+end
+local timeFormat = timeFormat
+
+local function timeFormatMS(timeAmount)
+	local seconds = floor(timeAmount / 1000)
+	local ms = timeAmount - seconds * 1000
+	local hours = floor(seconds / 3600)
+	local minutes = floor((seconds / 60) - (hours * 60))
+	seconds = seconds - hours * 3600 - minutes * 60
+
+	if hours == 0 then
+		return format("%d:%.2d.%.3d", minutes, seconds, ms)
+	else
+		return format("%d:%.2d:%.2d.%.3d", hours, minutes, seconds, ms)
+	end
+end
+local timeFormatMS = timeFormatMS
+
+local function GetTimerFrame(block)
+	if not block.TimerFrame then
+		local TimerFrame = CreateFrame("Frame", nil, block)
+		TimerFrame:SetAllPoints(block)
+		
+		TimerFrame.Text2 = TimerFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+		TimerFrame.Text2:SetPoint("LEFT", block.TimeLeft, "LEFT", 70, 0)
+		
+		TimerFrame.Text = TimerFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+		TimerFrame.Text:SetPoint("LEFT", TimerFrame.Text2, "LEFT", 50, 0)
+
+		TimerFrame.Bar3 = TimerFrame:CreateTexture(nil, "OVERLAY")
+		TimerFrame.Bar3:SetPoint("TOPLEFT", block.StatusBar, "TOPLEFT", block.StatusBar:GetWidth() * (1 - TIME_FOR_3) - 4, 4)
+		TimerFrame.Bar3:SetSize(2, 14)
+		TimerFrame.Bar3:SetTexture( texture)
+		TimerFrame.Bar3:SetVertexColor( 0, 1, 0, 1)
+		--TimerFrame.Bar3:SetTexCoord(0, 0.5, 0, 1)
+
+		TimerFrame.Bar2 = TimerFrame:CreateTexture(nil, "OVERLAY")
+		TimerFrame.Bar2:SetPoint("TOPLEFT", block.StatusBar, "TOPLEFT", block.StatusBar:GetWidth() * (1 - TIME_FOR_2) - 4, 4)
+		TimerFrame.Bar2:SetSize(2, 14)
+		TimerFrame.Bar2:SetTexture( texture)
+		TimerFrame.Bar2:SetVertexColor(0, 1, 0, 1)
+		--TimerFrame.Bar2:SetTexCoord(0.5, 1, 0, 1)
+
+		TimerFrame:Show()
+
+		block.TimerFrame = TimerFrame
+	end
+	return block.TimerFrame
+end
+
+local function UpdateTime(block, elapsedTime)
+	local TimerFrame = GetTimerFrame(block)
+
+	local time3 = block.timeLimit * TIME_FOR_3
+	local time2 = block.timeLimit * TIME_FOR_2
+
+	TimerFrame.Bar3:SetShown(elapsedTime < time3)
+	TimerFrame.Bar2:SetShown(elapsedTime < time2)
+
+	if elapsedTime < time3 then
+		TimerFrame.Text:SetText( timeFormat(time3 - elapsedTime) )
+		TimerFrame.Text:SetTextColor(1, 0.843, 0)
+		TimerFrame.Text:Show()
+		if true then --Addon.Config.silverGoldTimer then
+			TimerFrame.Text2:SetText( timeFormat(time2 - elapsedTime) )
+			TimerFrame.Text2:SetTextColor(0.78, 0.78, 0.812)
+			TimerFrame.Text2:Show()
+		else
+			TimerFrame.Text2:Hide()
+		end
+	elseif elapsedTime < time2 then
+		TimerFrame.Text:SetText( timeFormat(time2 - elapsedTime) )
+		TimerFrame.Text:SetTextColor(0.78, 0.78, 0.812)
+		TimerFrame.Text:Show()
+		TimerFrame.Text2:Hide()
+	else
+		TimerFrame.Text:Hide()
+		TimerFrame.Text2:Hide()
+	end
+
+	if elapsedTime > block.timeLimit then
+		block.TimeLeft:SetText(GetTimeStringFromSeconds(elapsedTime - block.timeLimit, false, true))
+	end
+end
+
+local function ShowBlock(timerID, elapsedTime, timeLimit)
+	local block = ScenarioChallengeModeBlock
+	local level, affixes, wasEnergized = C_ChallengeMode.GetActiveKeystoneInfo()
+	local dmgPct, healthPct = C_ChallengeMode.GetPowerLevelDamageHealthMod(level)
+	if true then --Addon.Config.showLevelModifier then
+		block.Level:SetText( format("%s, +%d%%", CHALLENGE_MODE_POWER_LEVEL:format(level), dmgPct) )
+	else
+		block.Level:SetText(CHALLENGE_MODE_POWER_LEVEL:format(level))
+	end
+end
+
+local function ProgressBar_SetValue(self, percent)
+	if self.criteriaIndex then
+		local _, _, _, _, totalQuantity, _, _, quantityString, _, _, _, _, _ = C_Scenario.GetCriteriaInfo(self.criteriaIndex)
+		local currentQuantity = quantityString and tonumber( strsub(quantityString, 1, -2) )
+		if currentQuantity and totalQuantity then
+			--	self.Bar.Label:SetFormattedText("%.2f%%", currentQuantity/totalQuantity*100)
+			--	self.Bar.Label:SetFormattedText("%d/%d", currentQuantity, totalQuantity)
+			--	self.Bar.Label:SetFormattedText("%.2f%% - %d/%d", currentQuantity/totalQuantity*100, currentQuantity, totalQuantity)
+			self.Bar.Label:SetFormattedText("%.2f%% (%.2f%%)", currentQuantity/totalQuantity*100, (totalQuantity-currentQuantity)/totalQuantity*100)
+			--	self.Bar.Label:SetFormattedText("%d/%d (%d)", currentQuantity, totalQuantity, totalQuantity - currentQuantity)
+			--	self.Bar.Label:SetFormattedText("%.2f%% (%.2f%%) - %d/%d (%d)", currentQuantity/totalQuantity*100, (totalQuantity-currentQuantity)/totalQuantity*100, currentQuantity, totalQuantity, totalQuantity - currentQuantity)
 		end
 	end
 end
+
+hooksecurefunc("Scenario_ChallengeMode_UpdateTime", UpdateTime)
+hooksecurefunc("Scenario_ChallengeMode_ShowBlock", ShowBlock)
+hooksecurefunc("ScenarioTrackerProgressBar_SetValue", ProgressBar_SetValue)
 
 local logan = CreateFrame("Frame", "yo_WeeklyAffixes", UIParent)
 	logan:RegisterEvent("PLAYER_ENTERING_WORLD")

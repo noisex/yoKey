@@ -47,7 +47,7 @@ local function OnEvent( self, event, ...)
 				local a, b, steps, c = C_Scenario.GetStepInfo();
 				local name, _, status, curValue = C_Scenario.GetCriteriaInfo( steps);
 				if curValue then
-					local appendString = string.format("|cff00ff00%.2f%%|r из |cffff0000%.2f%%", weight, curValue);
+					local appendString = string.format("|cff00ff00%.2f%%|r / |cffff0000%.2f%%", weight, curValue);
 					GameTooltip:AddDoubleLine( name, appendString) 
 				end
 				GameTooltip:Show()
