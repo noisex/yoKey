@@ -7,6 +7,11 @@ LibStub\LibStub.lua
 LibObjectiveProgress-1.0\embed.xml
 
 Func.lua
+
+Locale\locale.lua
+Locale\ruRU.lua
+Locale\enUS.lua
+
 yoKey.lua
 
 Affixes.lua

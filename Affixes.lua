@@ -1,14 +1,15 @@
+local L, yo = unpack( select( 2, ...))
+
 local rowCount = 3
 local affCount = 3
 local iSize = 35
-local requestKeystoneCheck, oldKey, currentWeek
+local requestKeystoneCheck, currentWeek, registered
 
-local scheduleTitle = "Schedule"
-local scheduleWeeks = { "Эта неделя", "Следующая","Через одну", "Через две" }
-local scheduleMissingKeystone = "Требуется 7+ Ключ в сумке для получения текущих аффиксов"
+local challengeMapID
+local TIME_FOR_3 = 0.6
+local TIME_FOR_2 = 0.8
 
-MYTHIC_PLUS_INCOMPLETE_WEEKLY_KEYSTONE = "Dont cry, make key!!!"
-MYTHIC_PLUS_MISSING_KEYSTONE_MESSAGE   = "Take your freiends\n ang go in dunge..."
+local yo_OldKey, yo_OldKey2 = nil, nil
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
@@ -24,7 +25,6 @@ local mythicRewards = {
 }
 
 -- 1: Overflowing, 2: Skittish, 3: Volcanic, 4: Necrotic, 5: Teeming, 6: Raging, 7: Bolstering, 8: Sanguine, 9: Tyrannical, 10: Fortified, 11: Bursting, 12: Grievous, 13: Explosive, 14: Quaking
--- уСИЛИВАЮЩИЙ = 7
 
 local affixWeeksLegs = { --affixID as used in C_ChallengeMode.GetAffixInfo(affixID)
     [1] = {[1]=6,[2]=3,[3]=9,[4]=16},
@@ -125,7 +125,7 @@ local function CreateLiders( self)
 			self.leaderBest.title = self.leaderBest:CreateFontString(nil, "ARTWORK")
 			self.leaderBest.title:SetFont( font, fontsize + 3, "OUTLINE")
 			self.leaderBest.title:SetTextColor( 1, 0.75, 0, 1)
-			self.leaderBest.title:SetText( "Weekly leaders")
+			self.leaderBest.title:SetText( L["WeekLeader"])
 			self.leaderBest.title:SetPoint("BOTTOM", self.leaderBest, "TOP", -15, 10)
 		end
 
@@ -197,7 +197,8 @@ end
 local function UpdateAffixes( self)
 	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetFont( font, fontsize + 2, "OUTLINE")
 	ChallengesFrame.WeeklyInfo.Child.RunStatus:ClearAllPoints()
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame, "TOP", 0, -180)
+	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame, "TOP", 0, -150)
+	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth( 250)
 	ChallengesFrame.WeeklyInfo.Child.RunStatus.ClearAllPoints = dummy
 	
 	C_MythicPlus.RequestCurrentAffixes()
@@ -262,7 +263,7 @@ local function Blizzard_ChallengesUI( self)
 	local title = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title:SetFont( font, fontsize + 3, "OUTLINE")
 	title:SetTextColor(1, 0.75, 0, 1)
-	title:SetText( scheduleTitle)
+	title:SetText( L["Schedule"])
 	title:SetPoint("TOP", 0, -7)
 
 	local line = frame:CreateTexture(nil, "ARTWORK")
@@ -290,7 +291,7 @@ local function Blizzard_ChallengesUI( self)
 	local title2 = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title2:SetFont( font, fontsize + 3, "OUTLINE")
 	title2:SetTextColor(1, 0.75, 0, 1)
-	title2:SetText( "Rewards")
+	title2:SetText( L["Rewards"])
 	title2:SetPoint("TOP", line3, "BOTTOM", 0, 0)
 
 	local line4 = frame:CreateTexture(nil, "ARTWORK")
@@ -298,7 +299,7 @@ local function Blizzard_ChallengesUI( self)
 	line4:SetAtlas("ChallengeMode-RankLineDivider", false)
 	line4:SetPoint("TOP", title2, "BOTTOM", 0, 0)
 
-	local outReward = "|cffffc300Level  Reward   Week/Azer|r\n"
+	local outReward = "|cffffc300Level  Reward   Week Azer|r\n"
 	for i, v in ipairs( mythicRewards ) do
 		outReward = outReward .. format("|cffff0000%5d|r|cff00ffff%10d%10d/|cffff9900%d\n", v[1], v[2], v[3], v[4])
 	end
@@ -362,19 +363,26 @@ local function OnEvent( self, event, name, ...)
 
 	elseif event == "BAG_UPDATE" then
 		requestKeystoneCheck = true
-	elseif event == "PLAYER_ENTERING_WORLD" then
-		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-
-		self:RegisterEvent("ADDON_LOADED")
-		self:RegisterEvent("BAG_UPDATE")
 	
-		self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
-		self:RegisterEvent("CHAT_MSG_PARTY")
-		self:RegisterEvent("CHAT_MSG_GUILD")
-		--self:RegisterEvent("CHAT_MSG_LOOT")
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		--self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 
-		CheckInventoryKeystone()
+		if not registered then
+			self:RegisterEvent("ADDON_LOADED")
+			self:RegisterEvent("BAG_UPDATE")
+	
+			self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
+			self:RegisterEvent("CHAT_MSG_PARTY")
+			self:RegisterEvent("CHAT_MSG_GUILD")
+			self:RegisterEvent("CHAT_MSG_LOOT")	
+			registered = true
+		end
+		
+		challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
+		yo_OldKey = CheckInventoryKeystone()
+
 	elseif event == "CHAT_MSG_PARTY_LEADER" or event == "CHAT_MSG_PARTY" then
+		name = strlower( name)
 		if name == "!key" or name == "!ключ" or name == "!keys" then
 			local keys = CheckInventoryKeystone()
 			if keys then
@@ -382,53 +390,83 @@ local function OnEvent( self, event, name, ...)
 			end
 		end
 	elseif event == "CHAT_MSG_GUILD" then
+		name = strlower( name)
 		if name == "!key" or name == "!ключ" or name == "!keys" then
 			local keys = CheckInventoryKeystone()
 			if keys then
 				SendChatMessage( keys, "GUILD")
 			end
 		end
-	--elseif event == "CHAT_MSG_LOOT" then
+	
+	elseif event == "CHAT_MSG_LOOT" then
 		
-	--	--local a = name:match("|Hkeystone:([0-9:]+)|h(%b[])|h")
-	--	--local a = name:match("%|cff.*%|Hitem.*%[Эпохальный ключ*%]")
-	--	--local a = name:match( " стебелек")
-
-	--	local a = name:match("%|cff.*|H.*|h")
-	--	local b = name:match("Эпохальный ключ")
-	--	local c = name:match("|Hkeystone:")
-	--	local y = name:match("^Вы ")
-	--	local z = name:match("^Ваша ")
+		--local b = name:match("Эпохальный ключ")
+		local c = name:match("|Hkeystone:")
+		local y = name:match("^Вы ")
+		local z = name:match("^Ваша ")
 		
 	--	--print( name, b, c, y, z, a)
-	--	if ( z or y) and ( b or c ) then
-	--		--local keys = CheckInventoryKeystone()
-	--		--print( "KEY Find: ", name, b, c, y, z)
-	--		--if keys then
-	--		print( "WIN: ", a)
-	--			--print(keys)
-	--		--SendChatMessage( a, "PARTY")
-	--		--end
-	--	end
+		if ( z or y) and ( b or c ) then
+			local keys = CheckInventoryKeystone()
+			print( "KEY Find: ", name, b, c, y, z)
+			if keys then
+				print( "WIN: ", b or c)
+			--SendChatMessage( a, "PARTY")
+			end
+		end
 
 	elseif event == "CHALLENGE_MODE_START"  or event == "CHALLENGE_MODE_RESET" then
-		--oldKey = CheckInventoryKeystone()
+		challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
+		yo_OldKey = CheckInventoryKeystone()
 
 	elseif event == "CHALLENGE_MODE_COMPLETED" then
-		--local newKey = CheckInventoryKeystone()
-		--if newKey and newKey ~= oldKey then
-			--print(newKey)
-			--SendChatMessage( newKey, "PARTY")
-		--end
+
+		if not challengeMapID then return end
+
+		local mapID, level, time, onTime, keystoneUpgradeLevels = C_ChallengeMode.GetCompletionInfo()
+		local name, _, timeLimit = C_ChallengeMode.GetMapUIInfo(challengeMapID)
+
+		timeLimit = timeLimit * 1000
+		local timeLimit2 = timeLimit * TIME_FOR_2
+		local timeLimit3 = timeLimit * TIME_FOR_3
+		
+		print( "|cff00ffff" .. LANDING_PAGE_REPORT)
+		if time <= timeLimit3 then
+			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion3"], level, name, timeFormatMS(time), timeFormatMS(timeLimit3 - time)), 255/255, 215/255, 1/255) 
+		elseif time <= timeLimit2 then
+			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion2"], level, name, timeFormatMS(time), timeFormatMS(timeLimit2 - time), timeFormatMS(time - timeLimit3)), 199/255, 199/255, 199/255)
+		elseif onTime then
+			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion1"], level, name, timeFormatMS(time), timeFormatMS(timeLimit - time), timeFormatMS(time - timeLimit2)), 237/255, 165/255, 95/255)
+		else
+			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion0"], name, level, timeFormatMS(time), timeFormatMS(time - timeLimit)), 255/255, 32/255, 32/255)
+		end
+		print("|cff00ffff--------------------------------------------------------------------------")
+
+		yo_OldKey2 = CheckInventoryKeystone()
+		C_Timer.After( 2, function()
+			local newKey = CheckInventoryKeystone()
+			--print("Debug: OLd: ", yo_OldKey, ". OLd2: ", yo_OldKey2, ". New: " , newKey)
+			if newKey and newKey ~= yo_OldKey then
+				--print(yo_OldKey, newKey)
+				SendChatMessage( newKey, "PARTY")
+			end
+		end)
 	end
 end
+
+
+local logan = CreateFrame("Frame", "yo_WeeklyAffixes", UIParent)
+	logan:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+	logan:RegisterEvent("CHALLENGE_MODE_COMPLETED");
+    logan:RegisterEvent("CHALLENGE_MODE_RESET");
+    logan:RegisterEvent("CHALLENGE_MODE_START")
+	logan:SetScript("OnEvent", OnEvent)
+
 
 ----------------------------------------------------------------------------------
 ---			ObjectiveTracker ( Angry KeyStone)
 ----------------------------------------------------------------------------------
-
-local TIME_FOR_3 = 0.6
-local TIME_FOR_2 = 0.8
 
 local function timeFormat(seconds)
 	local hours = floor(seconds / 3600)
@@ -554,12 +592,3 @@ end
 hooksecurefunc("Scenario_ChallengeMode_UpdateTime", UpdateTime)
 hooksecurefunc("Scenario_ChallengeMode_ShowBlock", ShowBlock)
 hooksecurefunc("ScenarioTrackerProgressBar_SetValue", ProgressBar_SetValue)
-
-local logan = CreateFrame("Frame", "yo_WeeklyAffixes", UIParent)
-	logan:RegisterEvent("PLAYER_ENTERING_WORLD")
-
-	logan:RegisterEvent("CHALLENGE_MODE_COMPLETED");
-    logan:RegisterEvent("CHALLENGE_MODE_RESET");
-    logan:RegisterEvent("CHALLENGE_MODE_START")
-	logan:SetScript("OnEvent", OnEvent)
-
