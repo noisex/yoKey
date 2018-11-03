@@ -1,9 +1,8 @@
 local _, ns = ...
 
-if ns:IsSameLocale("enUS") then
-	local L = ns.L or ns:NewLocale()
+local L = ns:NewLocale()
 
-	L.LOCALE_NAME = "enUS"
+L.LOCALE_NAME = "enUS"
 
 L["completion1"] = "Beat the timer for |cff8787ED%s [%s]|r in |cff00ffff%s|r. You were %s ahead of the timer, and missed +2 by %s."
 L["completion2"] = "Beat the timer for +2 |cff8787ED%s [%s]|r in |cff00ffff%s|r. You were %s ahead of the +2 timer, and missed +3 by %s."
@@ -15,4 +14,3 @@ L["Rewards"] 	= "Rewards"
 L["WeekLeader"] = "Week Leaders"
 
 ns[1] = L
-end

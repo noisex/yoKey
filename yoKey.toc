@@ -9,8 +9,8 @@ LibObjectiveProgress-1.0\embed.xml
 Func.lua
 
 Locale\locale.lua
-Locale\ruRU.lua
 Locale\enUS.lua
+Locale\ruRU.lua
 
 yoKey.lua
 

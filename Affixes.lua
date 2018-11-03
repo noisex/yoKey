@@ -410,8 +410,8 @@ local function OnEvent( self, event, name, ...)
 			local keys = CheckInventoryKeystone()
 			print( "KEY Find: ", name, b, c, y, z)
 			if keys then
-				print( "WIN: ", b or c)
-			--SendChatMessage( a, "PARTY")
+				--print( "WIN: ", b or c)
+				--SendChatMessage( a, "PARTY")
 			end
 		end
 
@@ -430,7 +430,9 @@ local function OnEvent( self, event, name, ...)
 		local timeLimit2 = timeLimit * TIME_FOR_2
 		local timeLimit3 = timeLimit * TIME_FOR_3
 		
+		print("|cff00ffff--------------------------------------------------------------------------")
 		print( "|cff00ffff" .. LANDING_PAGE_REPORT)
+		print("|cff00ffff--------------------------------------------------------------------------")
 		if time <= timeLimit3 then
 			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion3"], level, name, timeFormatMS(time), timeFormatMS(timeLimit3 - time)), 255/255, 215/255, 1/255) 
 		elseif time <= timeLimit2 then
