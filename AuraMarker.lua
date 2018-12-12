@@ -1,4 +1,3 @@
--- [spellID] = true / false ( buff / debuff)
 local L, yo = unpack( select( 2, ...))
 
 local LOP = LibStub("LibObjectiveProgress-1.0", true);
@@ -26,7 +25,7 @@ end
 --https://github.com/tomrus88/BlizzardInterfaceCode/blob/master/Interface/AddOns/Blizzard_APIDocumentation/ChallengeModeInfoDocumentation.lua
 
 local function OnEvent( self, event, ...)
-	
+
 	if event == "UPDATE_MOUSEOVER_UNIT" and C_Scenario.IsInScenario then
 		local npcID = MouseoverUnitID();
 		local _, _, difficulty, _, _, _, _, currentZoneID = GetInstanceInfo();
@@ -50,25 +49,25 @@ local function OnEvent( self, event, ...)
 				local name, _, status, curValue = C_Scenario.GetCriteriaInfo( steps);
 				if curValue then
 					local appendString = string.format("|cff00ff00%.2f%%|r / |cffff0000%.2f%%", weight, curValue);
-					GameTooltip:AddDoubleLine( name, appendString) 
+					GameTooltip:AddDoubleLine( name, appendString)
 				end
 				GameTooltip:Show()
 				--GameTooltip:AppendText(appendString);
 				--print( mapID, npcID, isTeeming, upper, appendString)
 			end
 		end
-		
+
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 
-		if not yo.Addons.mythicProcents then			
+		if not yo.Addons.mythicProcents then
 			self:UnregisterEvent("UPDATE_MOUSEOVER_UNIT")
 			self:SetScript("OnEvent", nil)
 		end
-		
+
 		--local affixName, affixDesc, affixNum = C_ChallengeMode.GetAffixInfo( 5);
 		local cmLevel, affixes, empowered = C_ChallengeMode.GetActiveKeystoneInfo();
-		isTeeming = HasTeeming( affixes);		
+		isTeeming = HasTeeming( affixes);
 	end
 end
 
