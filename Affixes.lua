@@ -1,5 +1,7 @@
 local L, yo = unpack( select( 2, ...))
 
+local tonumber, floor, ceil, abs, mod, modf, format, len, sub = tonumber, math.floor, math.ceil, math.abs, math.fmod, math.modf, string.format, string.len, string.sub
+
 local rowCount = 3
 local affCount = 3
 local iSize = 35
@@ -13,7 +15,7 @@ local yo_OldKey, yo_OldKey2 = nil, nil
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
-	{2,345,355,340},
+	{2,345,350,340},
 	{3,345,355,340},
 	{4,350,360,355},
 	{5,355,360,355},
@@ -23,6 +25,31 @@ local mythicRewards = {
 	{9,365,375,370},
 	{10,370,380,385},
 }
+
+--Сундук в подземелье
+
+--Ключ	Награда
+--2	375
+--3	375
+--4	380
+--5	385
+--6	385
+--7	390
+--8	395
+--9	395
+--10+	400
+--       	Еженедельный ларь
+
+--Ключ	Награда
+--2	385
+--3	385
+--4	390
+--5	390
+--6	395
+--7	400
+--8	400
+--9	405
+--10+	410
 
 -- 1: Overflowing, 2: Skittish, 3: Volcanic, 4: Necrotic, 5: Teeming, 6: Raging, 7: Bolstering, 8: Sanguine, 9: Tyrannical, 10: Fortified, 11: Bursting, 12: Grievous, 13: Explosive, 14: Quaking
 
@@ -62,7 +89,7 @@ end
 
 local function GuildLeadersOnEnter( self)
 	--local leaderInfo = self.leadersInfo;
-    
+
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
     local name = C_ChallengeMode.GetMapUIInfo(self.leadersInfo.mapChallengeModeID);
     GameTooltip:SetText(name, 1, 1, 1);
@@ -82,16 +109,16 @@ local function CreateLeadersIcon( self, index)
 		else
 			frame:SetPoint("TOPLEFT", self[index-1], "BOTTOMLEFT", 0, -5)
 		end
-		frame:SetSize( iSize, iSize)
+		frame:SetSize( iSize +10, iSize +10)
 
 		frame.icon = frame:CreateTexture(nil, "OVERLAY")
 		frame.icon:SetAllPoints(frame)
-		frame.icon:SetTexCoord( 0.365, 0.636, 0.352, 0.742)
+		--frame.icon:SetTexCoord( 0.365, 0.636, 0.352, 0.742)
 
 		frame.level = frame:CreateFontString(nil, "OVERLAY")
 		frame.level:SetFont( font, fontsize + 4, "OUTLINE")
 		frame.level:SetTextColor( 1, 0.75, 0, 1)
-		frame.level:SetPoint("BOTTOMRIGHT", frame.icon, "BOTTOMRIGHT", -3, 3)
+		frame.level:SetPoint("BOTTOMRIGHT", frame.icon, "BOTTOMRIGHT", 0, 1)
 
 		frame.mapname = frame:CreateFontString(nil, "ARTWORK")
 		frame.mapname:SetFont( font, fontsize, "OUTLINE")
@@ -106,9 +133,9 @@ local function CreateLeadersIcon( self, index)
 		frame:SetScript("OnEnter", GuildLeadersOnEnter)
 		frame:SetScript("OnLeave", GuildLeadersOnLeave)
 
-		self[index] = frame	
+		self[index] = frame
 	end
-	
+
 	return self[index]
 end
 
@@ -116,22 +143,22 @@ local function CreateLiders( self)
 
 	local leaders = C_ChallengeMode.GetGuildLeaders()
 	if leaders and #leaders > 0 then
-		
+
 		if not self.leaderBest then
 			self.leaderBest = CreateFrame("Frame", nil, ChallengesFrame)
 			self.leaderBest:SetSize(175, ( 35+5) * #leaders)
-			self.leaderBest:SetPoint("TOPLEFT", ChallengesFrame, "TOPLEFT", 15, -130)
+			self.leaderBest:SetPoint("TOPLEFT", ChallengesFrame, "TOPLEFT", 10, -120)
 
 			self.leaderBest.title = self.leaderBest:CreateFontString(nil, "ARTWORK")
 			self.leaderBest.title:SetFont( font, fontsize + 3, "OUTLINE")
 			self.leaderBest.title:SetTextColor( 1, 0.75, 0, 1)
-			self.leaderBest.title:SetText( L["WeekLeader"])
+			self.leaderBest.title:SetText(  L["WeekLeader"])
 			self.leaderBest.title:SetPoint("BOTTOM", self.leaderBest, "TOP", -15, 10)
 		end
 
-		for ind, leadersInfo in ipairs( leaders) do 
+		for ind, leadersInfo in ipairs( leaders) do
    			local icons = CreateLeadersIcon( self.leaderBest, ind)
-			local map, _, _, _, mapTexture =  C_ChallengeMode.GetMapUIInfo( leadersInfo.mapChallengeModeID)
+			local map, _, _, mapTexture =  C_ChallengeMode.GetMapUIInfo( leadersInfo.mapChallengeModeID)
 
 			icons.level:SetText( leadersInfo.keystoneLevel)
 			icons.leadername:SetText( "|c" .. RAID_CLASS_COLORS[leadersInfo.classFileName].colorStr .. leadersInfo.name)
@@ -145,13 +172,13 @@ end
 
 local function CheckInventoryKeystone()
 	local keyslink = nil
-	
+
 	local newname = UnitName("player")
 	local realm = GetRealmName()
 	if yo_AllData == nil then
 		yo_AllData = {}
 	end
-	
+
 	if yo_AllData[realm] == nil then
 		yo_AllData[realm] = {}
 	end
@@ -162,13 +189,13 @@ local function CheckInventoryKeystone()
 	yo_AllData[realm][newname]["KeyStone"] = nil
 	yo_AllData[realm][newname]["KeyStoneDay"] = nil
 	yo_AllData[realm][newname]["KeyStoneTime"] = nil
-	
+
 	for container=BACKPACK_CONTAINER, NUM_BAG_SLOTS do
 		local slots = GetContainerNumSlots(container)
 		for slot=1, slots do  -- 198 16 8 4 10  -- keystone:challengeMapID:mythicLevel:isActive:affix1:affix2:affix3
 			local _, _, _, _, _, _, slotLink = GetContainerItemInfo(container, slot)
 			local itemString = slotLink and slotLink:match("|Hkeystone:([0-9:]+)|h(%b[])|h")
-			
+
 			if itemString then
 				keyslink  = slotLink
 				yo_AllData[realm][newname]["KeyStone"] = slotLink
@@ -178,15 +205,18 @@ local function CheckInventoryKeystone()
 		end
 	end
 	requestKeystoneCheck = false
-	
+
 	return keyslink
 end
 
 local function skinDungens()
 	for k, map in pairs( ChallengesFrame.DungeonIcons) do
+		map.HighestLevel:ClearAllPoints()
+		map.HighestLevel:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", -1, 2)
+
 		map.Icon:SetHeight( map:GetHeight() - 4)
 		map.Icon:SetWidth( map:GetWidth() - 4)
-		map.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+		map.Icon:SetTexCoord(unpack( yo.tCoord))
 		map:GetRegions(1):SetAtlas( nil) --GetAtlas())
 		if not map.shadow then
 			CreateStyle( map, 4)
@@ -200,13 +230,14 @@ local function UpdateAffixes( self)
 	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame, "TOP", 0, -150)
 	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth( 250)
 	ChallengesFrame.WeeklyInfo.Child.RunStatus.ClearAllPoints = dummy
-	
+
 	C_MythicPlus.RequestCurrentAffixes()
     local affixIds = C_MythicPlus.GetCurrentAffixes() --table
     if not affixIds then return end
-    for week, affixes in ipairs( affixWeeks) do  
+    --tprint( affixIds)
+    for week, affixes in ipairs( affixWeeks) do
        	--if affixes[1] == affixIds[3] and affixes[2] == affixIds[1] and affixes[3] == affixIds[2] then
-       	if affixes[1] == affixIds[1] and affixes[2] == affixIds[2] and affixes[3] == affixIds[3] then
+       	if affixes[1] == affixIds[1].id and affixes[2] == affixIds[2].id and affixes[3] == affixIds[3].id then
            	currentWeek = week
        	end
     end
@@ -230,7 +261,7 @@ end
 
 local function makeAffix(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame:SetSize(iSize +2, iSize +2)  --(16, 16) 
+	frame:SetSize(iSize +2, iSize +2)  --(16, 16)
 
 	local border = frame:CreateTexture(nil, "OVERLAY")
 	border:SetAllPoints()
@@ -249,7 +280,7 @@ local function makeAffix(parent)
 	return frame
 end
 
-local function Blizzard_ChallengesUI( self)	
+local function Blizzard_ChallengesUI( self)
 	local frame = CreateFrame("Frame", nil, ChallengesFrame)
 	frame:SetSize( (iSize + 10) * affCount, (iSize + 7) * rowCount + 50 + 120)
 	frame:SetPoint("TOPRIGHT", ChallengesFrame.WeeklyInfo.Child, "TOPRIGHT", -6, -15)
@@ -356,28 +387,30 @@ local function SlotKeystone()
 	end
 end
 
-local function OnEvent( self, event, name, ...)
+local function OnEvent( self, event, name, sender, ...)
+
 	if event == "ADDON_LOADED" and name == "Blizzard_ChallengesUI" then
-		Blizzard_ChallengesUI( self)	
+		Blizzard_ChallengesUI( self)
 		ChallengesKeystoneFrame:HookScript("OnShow", SlotKeystone)
 
 	elseif event == "BAG_UPDATE" then
 		requestKeystoneCheck = true
-	
+
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		--self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 
 		if not registered then
 			self:RegisterEvent("ADDON_LOADED")
 			self:RegisterEvent("BAG_UPDATE")
-	
+
 			self:RegisterEvent("CHAT_MSG_PARTY_LEADER")
 			self:RegisterEvent("CHAT_MSG_PARTY")
 			self:RegisterEvent("CHAT_MSG_GUILD")
-			self:RegisterEvent("CHAT_MSG_LOOT")	
+			self:RegisterEvent("CHAT_MSG_LOOT")
+			self:RegisterEvent("CHAT_MSG_WHISPER")
 			registered = true
 		end
-		
+
 		challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
 		yo_OldKey = CheckInventoryKeystone()
 
@@ -397,21 +430,29 @@ local function OnEvent( self, event, name, ...)
 				SendChatMessage( keys, "GUILD")
 			end
 		end
-	
+	elseif event == "CHAT_MSG_WHISPER" then
+		name = strlower( name)
+		if name == "!key" or name == "!ключ" or name == "!keys" then
+			local keys = CheckInventoryKeystone()
+			if keys then
+				SendChatMessage( keys, "WHISPER", "Common", sender)
+			end
+		end
+
 	elseif event == "CHAT_MSG_LOOT" then
-		
+
 		--local b = name:match("Эпохальный ключ")
 		local c = name:match("|Hkeystone:")
 		local y = name:match("^Вы ")
 		local z = name:match("^Ваша ")
-		
+
 	--	--print( name, b, c, y, z, a)
 		if ( z or y) and ( b or c ) then
 			local keys = CheckInventoryKeystone()
 			print( "KEY Find: ", name, b, c, y, z)
 			if keys then
-				--print( "WIN: ", b or c)
-				--SendChatMessage( a, "PARTY")
+				print( "WIN: ", b or c)
+			--SendChatMessage( a, "PARTY")
 			end
 		end
 
@@ -429,12 +470,15 @@ local function OnEvent( self, event, name, ...)
 		timeLimit = timeLimit * 1000
 		local timeLimit2 = timeLimit * TIME_FOR_2
 		local timeLimit3 = timeLimit * TIME_FOR_3
-		
+
+		--print(name, level, timeFormatMS(time), timeFormatMS(time - timeLimit), L["completion0"])
+		--"Гробница королей"," 2, "1:05:01.321", "26:01.321"
+		--L["completion0"] = "|cff8787ED[%s] %s|r окончили за |cffff0000%s|r, вы отстали на %s от общего лимита времени."
 		print("|cff00ffff--------------------------------------------------------------------------")
 		print( "|cff00ffff" .. LANDING_PAGE_REPORT)
 		print("|cff00ffff--------------------------------------------------------------------------")
 		if time <= timeLimit3 then
-			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion3"], level, name, timeFormatMS(time), timeFormatMS(timeLimit3 - time)), 255/255, 215/255, 1/255) 
+			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion3"], level, name, timeFormatMS(time), timeFormatMS(timeLimit3 - time)), 255/255, 215/255, 1/255)
 		elseif time <= timeLimit2 then
 			DEFAULT_CHAT_FRAME:AddMessage( format( L["completion2"], level, name, timeFormatMS(time), timeFormatMS(timeLimit2 - time), timeFormatMS(time - timeLimit3)), 199/255, 199/255, 199/255)
 		elseif onTime then
@@ -447,7 +491,7 @@ local function OnEvent( self, event, name, ...)
 		yo_OldKey2 = CheckInventoryKeystone()
 		C_Timer.After( 2, function()
 			local newKey = CheckInventoryKeystone()
-			--print("Debug: OLd: ", yo_OldKey, ". OLd2: ", yo_OldKey2, ". New: " , newKey)
+			print("Debug: OLd: ", yo_OldKey, ". OLd2: ", yo_OldKey2, ". New: " , newKey)
 			if newKey and newKey ~= yo_OldKey then
 				--print(yo_OldKey, newKey)
 				SendChatMessage( newKey, "PARTY")
@@ -470,42 +514,17 @@ local logan = CreateFrame("Frame", "yo_WeeklyAffixes", UIParent)
 ---			ObjectiveTracker ( Angry KeyStone)
 ----------------------------------------------------------------------------------
 
-local function timeFormat(seconds)
-	local hours = floor(seconds / 3600)
-	local minutes = floor((seconds / 60) - (hours * 60))
-	seconds = seconds - hours * 3600 - minutes * 60
-
-	if hours == 0 then
-		return format("%d:%.2d", minutes, seconds)
-	else
-		return format("%d:%.2d:%.2d", hours, minutes, seconds)
-	end
-end
 local timeFormat = timeFormat
-
-local function timeFormatMS(timeAmount)
-	local seconds = floor(timeAmount / 1000)
-	local ms = timeAmount - seconds * 1000
-	local hours = floor(seconds / 3600)
-	local minutes = floor((seconds / 60) - (hours * 60))
-	seconds = seconds - hours * 3600 - minutes * 60
-
-	if hours == 0 then
-		return format("%d:%.2d.%.3d", minutes, seconds, ms)
-	else
-		return format("%d:%.2d:%.2d.%.3d", hours, minutes, seconds, ms)
-	end
-end
 local timeFormatMS = timeFormatMS
 
 local function GetTimerFrame(block)
 	if not block.TimerFrame then
 		local TimerFrame = CreateFrame("Frame", nil, block)
 		TimerFrame:SetAllPoints(block)
-		
+
 		TimerFrame.Text2 = TimerFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 		TimerFrame.Text2:SetPoint("LEFT", block.TimeLeft, "LEFT", 70, 0)
-		
+
 		TimerFrame.Text = TimerFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 		TimerFrame.Text:SetPoint("LEFT", TimerFrame.Text2, "LEFT", 50, 0)
 
